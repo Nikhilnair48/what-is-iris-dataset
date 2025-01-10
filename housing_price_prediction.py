@@ -1,7 +1,7 @@
 import pandas as pd
-from sklearn.preprocessing import OneHotEncoder, StandardScaler
+from sklearn.preprocessing import OneHotEncoder, StandardScaler, PolynomialFeatures
 from sklearn.model_selection import train_test_split
-from sklearn.linear_model import LinearRegression
+from sklearn.linear_model import LinearRegression, Ridge
 from sklearn.metrics import mean_squared_error, r2_score
 import matplotlib.pyplot as plt
 
@@ -111,12 +111,61 @@ def visualize_predictions(y_test, y_pred):
 
     plt.figure(figsize=(8, 6))
     plt.scatter(y_test, y_pred, alpha=0.7, color='blue')
-    plt.plot([y_test.min(), y_test.max()], [y_test.min(), y_test.max()], 'k--', lw=2,
-             color='red')  # Perfect prediction line
+    plt.plot([y_test.min(), y_test.max()], [y_test.min(), y_test.max()], lw=2)
     plt.xlabel("Actual Prices")
     plt.ylabel("Predicted Prices")
     plt.title("Actual vs. Predicted Prices")
     plt.show()
+
+
+def add_polynomial_features(x_train, x_test, degree):
+    """
+    Add polynomial features to the dataset for non-linear modeling.
+    :param x_train: pd.DataFrame, training features
+    :param x_test: pd.DataFrame, testing features
+    :param degree: int, degree of polynomial features
+    :return: transformed X_train, X_test
+    """
+    print(f"Adding polynomial features (degree={degree})...")
+
+    poly = PolynomialFeatures(degree=degree, include_bias=False)
+    x_train_poly = poly.fit_transform(x_train)
+    x_test_poly = poly.transform(x_test)
+
+    print("Polynomial features added.")
+    return x_train_poly, x_test_poly
+
+
+def train_ridge_regression(x_train, y_train, alpha=1.0):
+    """
+    Train a Ridge Regression model with L2 regularization.
+    :param x_train: Training features (can include polynomial features)
+    :param y_train: Training target
+    :param alpha: Regularization strength
+    :return: Trained Ridge model
+    """
+    print(f"Training Ridge Regression model with alpha={alpha}...")
+    model = Ridge(alpha=alpha)
+    model.fit(x_train, y_train)
+    print("Ridge Regression model training complete.")
+    return model
+
+
+def train_and_evaluate_polynomial_regression(x_train, x_test, y_train, y_test, degree):
+    """
+    Train and evaluate a polynomial regression model.
+    """
+    # Step 1: Add polynomial features
+    x_train_poly, x_test_poly = add_polynomial_features(x_train, x_test, degree)
+
+    # For degree 2, produced: Mean Squared Error (MSE): 160831795.65 and R² Score: 0.73
+    # model = train_linear_regression(x_train_poly, y_train)
+    # y_pred = evaluate_model(model, x_test_poly, y_test)
+    # visualize_predictions(y_test, y_pred)
+
+    ridge_model = train_ridge_regression(x_train_poly, y_train, alpha=1.0)
+    y_pred_ridge = evaluate_model(ridge_model, x_test_poly, y_test)
+    visualize_predictions(y_test, y_pred_ridge)
 
 
 if __name__ == "__main__":
@@ -125,15 +174,22 @@ if __name__ == "__main__":
 
     if data is not None:
         data = preprocess_data(data)
-
         print("Preprocessed Dataset:")
         print(data.head())
 
         target_column = "Price"
         x_train, x_test, y_train, y_test = split_data(data, target_column)
 
-        model = train_linear_regression(x_train, y_train)
+        model_type = "polynomial"
 
-        y_pred = evaluate_model(model, x_test, y_test)
+        if model_type == "linear":
+            model = train_linear_regression(x_train, y_train)
+            y_pred = evaluate_model(model, x_test, y_test)
+            visualize_predictions(y_test, y_pred)
 
-        visualize_predictions(y_test, y_pred)
+        elif model_type == "polynomial":
+            degree = 1
+            train_and_evaluate_polynomial_regression(x_train, x_test, y_train, y_test, degree)
+
+        else:
+            print(f"Error: Unknown model type '{model_type}'. Choose 'linear' or 'polynomial'.")
