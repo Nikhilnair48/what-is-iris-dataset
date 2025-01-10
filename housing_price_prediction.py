@@ -3,6 +3,7 @@ from sklearn.preprocessing import OneHotEncoder, StandardScaler
 from sklearn.model_selection import train_test_split
 from sklearn.linear_model import LinearRegression
 from sklearn.metrics import mean_squared_error, r2_score
+import matplotlib.pyplot as plt
 
 
 def load_data(filepath):
@@ -100,6 +101,24 @@ def evaluate_model(model, x_test, y_test):
     return y_pred
 
 
+def visualize_predictions(y_test, y_pred):
+    """
+    Plot actual vs. predicted prices to analyze model performance.
+    :param y_test: pd.Series, actual target values
+    :param y_pred: np.ndarray, predicted target values
+    """
+    print("Visualizing predictions...")
+
+    plt.figure(figsize=(8, 6))
+    plt.scatter(y_test, y_pred, alpha=0.7, color='blue')
+    plt.plot([y_test.min(), y_test.max()], [y_test.min(), y_test.max()], 'k--', lw=2,
+             color='red')  # Perfect prediction line
+    plt.xlabel("Actual Prices")
+    plt.ylabel("Predicted Prices")
+    plt.title("Actual vs. Predicted Prices")
+    plt.show()
+
+
 if __name__ == "__main__":
     dataset_path = "datasets/house-prices.csv"
     data = load_data(dataset_path)
@@ -116,3 +135,5 @@ if __name__ == "__main__":
         model = train_linear_regression(x_train, y_train)
 
         y_pred = evaluate_model(model, x_test, y_test)
+
+        visualize_predictions(y_test, y_pred)
