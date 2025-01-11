@@ -1,8 +1,10 @@
 import pandas as pd
 from sklearn.preprocessing import OneHotEncoder, StandardScaler, PolynomialFeatures
-from sklearn.model_selection import train_test_split
+from sklearn.model_selection import train_test_split, GridSearchCV
 from sklearn.linear_model import LinearRegression, Ridge
 from sklearn.metrics import mean_squared_error, r2_score
+from sklearn.ensemble import RandomForestRegressor
+from xgboost import XGBRegressor
 import matplotlib.pyplot as plt
 
 
@@ -168,6 +170,56 @@ def train_and_evaluate_polynomial_regression(x_train, x_test, y_train, y_test, d
     visualize_predictions(y_test, y_pred_ridge)
 
 
+def train_random_forest(x_train, y_train, n_estimators=100, max_depth=None):
+    """
+    Train a Random Forest model on the training data.
+    :param x_train: Training features
+    :param y_train: Training target
+    :param n_estimators: Number of trees in the forest
+    :param max_depth: Maximum depth of each tree
+    :return: Trained Random Forest model
+    """
+    print("Training Random Forest model...")
+    model = RandomForestRegressor(n_estimators=n_estimators, max_depth=max_depth, random_state=42)
+    model.fit(x_train, y_train)
+    print("Random Forest model training complete.")
+    return model
+
+
+def train_xgboost(x_train, y_train, n_estimators=100, learning_rate=0.1, max_depth=3):
+    """
+    Train an XGBoost model on the training data.
+    :param x_train: Training features
+    :param y_train: Training target
+    :param n_estimators: Number of boosting rounds
+    :param learning_rate: Learning rate (shrinkage factor)
+    :param max_depth: Maximum depth of each tree
+    :return: Trained XGBoost model
+    """
+    print("Training XGBoost model...")
+    model = XGBRegressor(n_estimators=n_estimators, learning_rate=learning_rate, max_depth=max_depth, random_state=42)
+    model.fit(x_train, y_train)
+    print("XGBoost model training complete.")
+    return model
+
+
+def perform_hyperparameter_tuning(model, param_grid, x_train, y_train):
+    """
+    Perform hyperparameter tuning using GridSearchCV.
+    :param model: The model to tune
+    :param param_grid: Dictionary of hyperparameters to test
+    :param x_train: Training features
+    :param y_train: Training target
+    :return: Best model after tuning
+    """
+    print("Performing hyperparameter tuning...")
+    grid_search = GridSearchCV(model, param_grid, cv=3, scoring='r2', verbose=1, n_jobs=-1)
+    grid_search.fit(x_train, y_train)
+    print(f"Best parameters: {grid_search.best_params_}")
+    print(f"Best R² score from tuning: {grid_search.best_score_:.2f}")
+    return grid_search.best_estimator_
+
+
 if __name__ == "__main__":
     dataset_path = "datasets/house-prices.csv"
     data = load_data(dataset_path)
@@ -180,7 +232,7 @@ if __name__ == "__main__":
         target_column = "Price"
         x_train, x_test, y_train, y_test = split_data(data, target_column)
 
-        model_type = "polynomial"
+        model_type = "random_forest"  # Options: "linear", "polynomial", "random_forest", "xgboost", or tuned versions
 
         if model_type == "linear":
             model = train_linear_regression(x_train, y_train)
@@ -188,8 +240,42 @@ if __name__ == "__main__":
             visualize_predictions(y_test, y_pred)
 
         elif model_type == "polynomial":
-            degree = 1
+            degree = 2
             train_and_evaluate_polynomial_regression(x_train, x_test, y_train, y_test, degree)
 
+        elif model_type == "random_forest":
+            model = train_random_forest(x_train, y_train, n_estimators=500, max_depth=10)
+            y_pred = evaluate_model(model, x_test, y_test)
+            visualize_predictions(y_test, y_pred)
+
+        elif model_type == "random_forest_tuned":
+            param_grid_rf = {
+                'n_estimators': [50, 100, 200],
+                'max_depth': [None, 10, 20],
+                'min_samples_split': [2, 5, 10],
+            }
+            rf_model = RandomForestRegressor(random_state=42)
+            best_rf_model = perform_hyperparameter_tuning(rf_model, param_grid_rf, x_train, y_train)
+            y_pred = evaluate_model(best_rf_model, x_test, y_test)
+            visualize_predictions(y_test, y_pred)
+
+        elif model_type == "xgboost":
+            model = train_xgboost(x_train, y_train, n_estimators=200, learning_rate=0.05, max_depth=6)
+            y_pred = evaluate_model(model, x_test, y_test)
+            visualize_predictions(y_test, y_pred)
+
+        elif model_type == "xgboost_tuned":
+            param_grid_xgb = {
+                'n_estimators': [50, 100, 200],
+                'learning_rate': [0.01, 0.1, 0.2],
+                'max_depth': [3, 5, 7],
+            }
+            xgb_model = XGBRegressor(random_state=42)
+            best_xgb_model = perform_hyperparameter_tuning(xgb_model, param_grid_xgb, x_train, y_train)
+            y_pred = evaluate_model(best_xgb_model, x_test, y_test)
+            visualize_predictions(y_test, y_pred)
+
         else:
-            print(f"Error: Unknown model type '{model_type}'. Choose 'linear' or 'polynomial'.")
+            print(f"Error: Unknown model type '{model_type}'. Choose 'linear', 'polynomial', 'random_forest', "
+                  f"or 'xgboost'.")
+
