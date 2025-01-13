@@ -6,6 +6,7 @@ from sklearn.metrics import mean_squared_error, r2_score
 from sklearn.ensemble import RandomForestRegressor
 from xgboost import XGBRegressor
 import matplotlib.pyplot as plt
+from model_interpretation import interpret_linear_model, interpret_tree_model, interpret_with_shap
 
 
 def load_data(filepath):
@@ -220,6 +221,8 @@ def perform_hyperparameter_tuning(model, param_grid, x_train, y_train):
     return grid_search.best_estimator_
 
 
+from model_interpretation import interpret_linear_model, interpret_tree_model, interpret_with_shap
+
 if __name__ == "__main__":
     dataset_path = "datasets/house-prices.csv"
     data = load_data(dataset_path)
@@ -239,6 +242,8 @@ if __name__ == "__main__":
             y_pred = evaluate_model(model, x_test, y_test)
             visualize_predictions(y_test, y_pred)
 
+            interpret_linear_model(model, x_train.columns)
+
         elif model_type == "polynomial":
             degree = 2
             train_and_evaluate_polynomial_regression(x_train, x_test, y_train, y_test, degree)
@@ -247,6 +252,9 @@ if __name__ == "__main__":
             model = train_random_forest(x_train, y_train, n_estimators=500, max_depth=10)
             y_pred = evaluate_model(model, x_test, y_test)
             visualize_predictions(y_test, y_pred)
+
+            interpret_tree_model(model, x_train.columns)
+            interpret_with_shap(model, x_train, x_train.columns)
 
         elif model_type == "random_forest_tuned":
             param_grid_rf = {
@@ -259,10 +267,16 @@ if __name__ == "__main__":
             y_pred = evaluate_model(best_rf_model, x_test, y_test)
             visualize_predictions(y_test, y_pred)
 
+            interpret_tree_model(best_rf_model, x_train.columns)
+            interpret_with_shap(best_rf_model, x_train, x_train.columns)
+
         elif model_type == "xgboost":
             model = train_xgboost(x_train, y_train, n_estimators=200, learning_rate=0.05, max_depth=6)
             y_pred = evaluate_model(model, x_test, y_test)
             visualize_predictions(y_test, y_pred)
+
+            interpret_tree_model(model, x_train.columns)
+            interpret_with_shap(model, x_train, x_train.columns)
 
         elif model_type == "xgboost_tuned":
             param_grid_xgb = {
@@ -275,7 +289,9 @@ if __name__ == "__main__":
             y_pred = evaluate_model(best_xgb_model, x_test, y_test)
             visualize_predictions(y_test, y_pred)
 
+            interpret_tree_model(best_xgb_model, x_train.columns)
+            interpret_with_shap(best_xgb_model, x_train, x_train.columns)
+
         else:
             print(f"Error: Unknown model type '{model_type}'. Choose 'linear', 'polynomial', 'random_forest', "
                   f"or 'xgboost'.")
-
