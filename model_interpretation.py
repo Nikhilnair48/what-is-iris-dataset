@@ -50,6 +50,7 @@ def interpret_with_shap(model, x_train, feature_names):
     :param x_train: Training dataset (features only)
     :param feature_names: List of feature names
     """
+
     print("\nGenerating SHAP explanations...")
     explainer = shap.Explainer(model, x_train)
     shap_values = explainer(x_train)
@@ -58,6 +59,17 @@ def interpret_with_shap(model, x_train, feature_names):
     print("\nSHAP Summary Plot:")
     shap.summary_plot(shap_values, x_train, feature_names=feature_names)
 
-    # Local Interpretability: Single prediction explanation
+    # Local Interpretability: Single prediction explanation (force plot)
     print("\nSHAP Force Plot (First Prediction):")
-    shap.force_plot(explainer.expected_value, shap_values[0, :], x_train.iloc[0, :], matplotlib=True)
+
+    # Handle scalar expected value
+    expected_value = explainer.expected_value
+    if isinstance(expected_value, (list, tuple)):
+        expected_value = expected_value[0]
+
+    shap.force_plot(
+        expected_value,
+        shap_values[0].values,
+        x_train.iloc[0],
+        matplotlib=True
+    )
